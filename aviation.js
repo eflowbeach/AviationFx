@@ -1,12 +1,14 @@
 d3.json("data/KCRW.json", function(error, json) {
     if (error) return console.warn(error);
 
-    visualizeIt(json, "PredHgt");
+    visualizeIt(json, "PredHgt", "Ceiling (ft x 100)");
     //    visualizeIt(json, "CigHgt");
-    visualizeIt(json, "Vsby");
+    visualizeIt(json, "Vsby", "Visibility (nmi.)");
 });
 
-function visualizeIt(dataset, field) {
+
+
+function visualizeIt(dataset, field, yAxisLabel) {
     //Width and height
     var width = 700;
     var height = 150;
@@ -67,6 +69,8 @@ function visualizeIt(dataset, field) {
         .tickFormat(function(d) {
             return yScale.tickFormat(4, d3.format(",d"))(d)
         });
+
+
 
     //Create SVG element
     var svg = d3.select("body")
@@ -139,10 +143,10 @@ function visualizeIt(dataset, field) {
     svg.append("text")
         .attr("transform", "rotate(-90)")
         .attr("y", 0)
-        .attr("x", 0 - (height / 2))
+        .attr("x", 0 - ((margin.top + height) / 2))
         .attr("dy", "1em")
         .style("text-anchor", "middle")
-        .text("Value");
+        .text(yAxisLabel);
 
 
     //Create lines
@@ -155,9 +159,18 @@ function visualizeIt(dataset, field) {
         .domain(colorCategories)
         .range(colors.reverse());
 
+    // Tooltip
+    // tooltip
+    var tip = d3.tip()
+        .attr('class', 'd3-tip')
+        .offset([-10, 0])
+        .html(function(d) {
+            return "<strong>Value:</strong> <span style='color:white'>" + d[1] + "</span>";
+        })
+
     var lineFunction = d3.svg.line()
-     // Get rid of nulls
-    .defined(function(d) {
+        // Get rid of nulls
+        .defined(function(d) {
             return d[1] != null;
         })
         .x(function(d) {
@@ -178,6 +191,12 @@ function visualizeIt(dataset, field) {
         .attr("stroke-width", 2)
         .attr("fill", "none");
 
+
+    svg.call(tip);
+
+
+
+
     //Create circles
     svg.selectAll("circle")
         .data(dataset[field])
@@ -196,48 +215,62 @@ function visualizeIt(dataset, field) {
         })
         .attr("r", function(d) {
             return d[1] == null ? 0 : 4; //rScale(d[1]);
-        });
+        })
+        .on('mouseover', function(e) {
+            tip.show(e);
+            var circle = d3.select(this);
+            circle.transition().duration(500)
+                .attr("r", circle.attr("r") * 1 + 10);
+        })
+        .on('mouseout', function(e) {
+            tip.hide(e);
+            var circle = d3.select(this);
+            circle.transition().duration(500)
+                .attr("r", 4);
 
-    //
-    //// Text Shadow
-    //svg.selectAll("text")
-    //	   .data(dataset[field])
-    //	   .enter()
-    //	   .append("text")
-    //	   .text(function(d) {
-    //			return  parseInt(d[1]);
-    //	   })
-    //	   .attr("x", function(d) {
-    //			return xScale(new Date(d[0] * 1000));
-    //	   })
-    //	   .attr("y", function(d) {
-    //			return yScale(d[1]);
-    //	   })
-    //	   .attr("font-family", "sans-serif")
-    //		.attr("class", "shadow")
-    //		.attr("text-anchor", "middle")
-    //	   .attr("font-size", "11px")
-    //	   .attr("fill", "white");
-    //
-    //	//Create labels
-    //	svg.selectAll(".text")
-    //	   .data(dataset[field])
-    //	   .enter()
-    //	   .append("text")
-    //	   .text(function(d) {
-    //	   console.log(d);
-    //			return  parseInt(d[1]);
-    //	   })
-    //	   .attr("x", function(d) {
-    //			return xScale(new Date(d[0] * 1000));
-    //	   })
-    //	   .attr("y", function(d) {
-    //			return yScale(d[1]);
-    //	   })
-    //	   .attr("font-family", "sans-serif")
-    //	   .attr("font-size", "11px")
-    //	   .attr("text-anchor", "middle")
-    //	   .attr("fill", "black");
+        })
+
+
+    // Text Shadow
+    var offset = 10;
+
+    svg.selectAll(".text")
+        .data(dataset[field])
+        .enter()
+        .append("text")
+        .text(function(d) {
+            return parseInt(d[1]);
+        })
+        .attr("x", function(d) {
+            return xScale(new Date(d[0] * 1000));
+        })
+        .attr("y", function(d) {
+            return yScale(d[1]) - offset;
+        })
+        .attr("font-family", "sans-serif")
+        .attr("class", "shadow")
+        .attr("text-anchor", "middle")
+        .attr("font-size", "11px")
+        .attr("fill", "white");
+
+    //Create labels
+    svg.selectAll(".text")
+        .data(dataset[field])
+        .enter()
+        .append("text")
+        .text(function(d) {
+            return parseInt(d[1]);
+        })
+        .attr("x", function(d) {
+            return xScale(new Date(d[0] * 1000));
+        })
+        .attr("y", function(d) {
+            return yScale(d[1]) - offset;
+        })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "11px")
+        .attr("text-anchor", "middle")
+        .attr("fill", "black");
 
     // Title
     svg.append("text")
